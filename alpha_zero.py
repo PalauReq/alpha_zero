@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from tinygrad import Tensor, nn
 
 
-class Network:
+class ResNet:
     def __init__(self, board_shape: tuple[int, int] = (19, 19), num_input_planes: int = 17, num_hidden_planes: int = 256, num_residual_blocks: int = 19):
         board_size = board_shape[0] * board_shape[1]
 
