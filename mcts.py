@@ -8,6 +8,9 @@ from math import sqrt
 class State():
     data: list
 
+    def turn():
+        pass
+
 
 class Environment():
     def transition(self, s: State, a: int) -> State:

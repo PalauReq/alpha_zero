@@ -39,6 +39,12 @@ class TestTicTacToe(unittest.TestCase):
                 s = s.make_move(i, j, 0)
         self.assertTrue(s.is_full())
 
+    def test_turn(self):
+        s = State().make_move(0, 0, 0)
+        s.turn()
+        self.assertEqual(s.board[0, 0, 0], 0)
+        self.assertEqual(s.board[1, 0, 0], 1)
+
     def test_transition(self):
         new_s, reward, done = transition(State(), 0)
         

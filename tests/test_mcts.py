@@ -15,12 +15,6 @@ class TestMTCS(unittest.TestCase):
         
         a, next_root = search(root, model, env)
 
-        print(root)
-        for child in root.children:
-            print(child)
-
-        print(f"Playing action {a} to transition to {next_root}")
-
 
 if __name__ == "__main__":
     unittest.main()

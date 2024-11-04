@@ -33,6 +33,9 @@ class State():
     def is_full(self) -> bool:
         return ((self.board == 1).any(axis=0) == 1).all()
     
+    def turn(self):
+        self.board = np.flip(self.board, axis=0)
+    
     
 def transition(s: State, a: int) -> tuple[State, float, bool]:
     i, j = a // num_rows, a % num_rows
