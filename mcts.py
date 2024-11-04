@@ -75,7 +75,7 @@ def select(node: MCTNode) -> MCTNode:
 def expand_and_evaluate(leaf: MCTNode, f: Model, env: Environment):
     # TODO queue nodes for evaluation with batch_size=8
     ps, v = f(leaf.s) # TODO implement state representation as Tensor
-    leaf.children = [MCTNode(leaf, env.transition(leaf.s, a), p) for a, p in enumerate(ps)]
+    leaf.children = [MCTNode(leaf, env.transition(leaf.s, a).turn(), p) for a, p in enumerate(ps)]
     leaf.w = v
 
 
