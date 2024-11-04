@@ -42,7 +42,7 @@ def transition(s: State, a: int) -> tuple[State, float, bool]:
     assert _is_legal(i, j, s), "Ilegal action"
     new_s = s.make_move(i, j, player=0)
 
-    return (new_s, compute_reward(new_s), is_terminal(new_s))
+    return (new_s, compute_reward(new_s), is_terminal(new_s)) # Maybe a similar function just returning new_s is handy
 
 
 def is_legal(a: int, s: State) -> bool:

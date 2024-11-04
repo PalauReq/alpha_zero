@@ -1,6 +1,54 @@
 from __future__ import annotations
 
+import mcts
+
+import numpy as np
 from tinygrad import Tensor, nn
+
+
+def self_learn(num_iterations: int, num_games: int, num_simulations: int):
+    f = ResNet()
+    
+    for i in range(num_iterations):
+        games = (self_play(f, num_simulations) for j in range(num_games))
+        store(games, i)
+        data = np.ndarray(move for game in games for move in game)
+
+        f = optimize(f, data)
+        checkpoint(f, i)
+
+
+def self_play(f: Model, num_simulations: int, v_resign: float = -1) -> np.ndarray:
+    """
+    For the first 30 moves of each game, the temperature is set to τ = 1; this selects moves proportionally
+    to their visit count in MCTS, and ensures a diverse set of positions are encountered. For the remainder
+    of the game, an infinitesimal temperature is used, τ → 0. Additional exploration is achieved by adding 
+    Dirichlet noise to the prior probabilities in the root node s0, this noise ensures that all moves may be
+    tried, but the search may still overrule bad moves. 
+
+    In order to save computation, clearly lost games are resigned. The resignation threshold vresign is selected
+    automatically to keep the fraction of false positives (games that could have been won if AlphaGo had not
+    resigned) below 5%. To measure false positives, we disable resignation in 10% of self-play games and play
+    until termination.
+    """
+    env = Environment()
+    s = State()
+
+    while not env.is_terminal(s) and v > v_resign:
+        v, ps = mcts.search(node, f, env, num_simulations)
+        record(s, ps)  # search should return these
+        a, node = mcts.play(node)
+
+    # determine the outcome and add z to records
+
+    
+def optimize(f: Model, data: np.ndarray) -> Model:
+    """
+    The batch-size is 32 per worker, for a total mini-batch size of 2,048. Each mini-batch of data
+    is sampled uniformly at random from all positions from the most recent 500,000 games of self-play.
+    It produces a new checkpoint every 1,000 training steps.
+    """    
+    pass
 
 
 class ResNet:

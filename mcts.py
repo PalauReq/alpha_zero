@@ -57,7 +57,7 @@ class MCTNode():
         return self.children.index(child)
 
 
-def search(root: MCTNode, f: Model, env: Environment, num_simulations: int = 800) -> tuple[MCTNode, int]:
+def search(root: MCTNode, f: Model, env: Environment, num_simulations: int = 800) -> tuple[int, MCTNode]:
     for t in range(num_simulations):
         leaf = select(root)
         expand_and_evaluate(leaf, f, env)
@@ -92,7 +92,7 @@ def backup(leaf: MCTNode):
         leaf = leaf.parent
 
 
-def play(current_node: MCTNode, temperature: float = 1) -> tuple[MCTNode, int]:
+def play(current_node: MCTNode, temperature: float = 1) -> tuple[int, MCTNode]:
     # TODO use virtual loss to ensure each seach thread evaluates different nodes (69).
     next_node = current_node.get_best_child_to_play(temperature)
     a = current_node.get_action(next_node)
