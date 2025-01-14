@@ -35,6 +35,9 @@ class State():
     
     def turn(self):
         self.board = np.flip(self.board, axis=0)
+
+    def __str__(self):
+        return str(self.board[0] - self.board[1])
     
     
 def transition(s: State, a: int) -> tuple[State, float, bool]:
@@ -44,6 +47,8 @@ def transition(s: State, a: int) -> tuple[State, float, bool]:
 
     return (new_s, compute_reward(new_s), is_terminal(new_s)) # Maybe a similar function just returning new_s is handy
 
+def get_legal_actions(s: State) -> list[int]:
+    return [i * num_rows + j for i in range(num_rows) for j in range(num_cols) if _is_legal(i, j, s)]
 
 def is_legal(a: int, s: State) -> bool:
     return _is_legal(a // num_rows, a % num_rows , s)
