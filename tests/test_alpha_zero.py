@@ -1,6 +1,6 @@
 import unittest
 
-from alpha_zero import ResNet, optimize
+from alpha_zero import *
 
 from tinygrad import Tensor
 import numpy as np
@@ -90,6 +90,15 @@ class TestAlphaZero(unittest.TestCase):
         f = ResNet((3, 3), 2, 4, 2)
         _ = optimize(f, (x, pi, v, x_test, pi_test, v_test), num_steps=2, batch_size=8)
 
+    def test_self_play(self):
+        f = ResNet((3, 3), 2, 4, 2)
+        states, policies, actions, rewards, values = self_play(f, num_simulations=10)
+        for state in states:
+            print(f"state: {state}")
+        # print(f"policies: {policies}")
+        print(f"actions: {actions}")
+        print(f"rewards: {rewards}")
+        print(f"values: {values}")
 
 if __name__ == "__main__":
     unittest.main()

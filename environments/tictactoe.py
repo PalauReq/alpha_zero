@@ -37,7 +37,10 @@ class State():
         self.board = np.flip(self.board, axis=0)
 
     def __str__(self):
-        return str(self.board[0] - self.board[1])
+        return str(self.board.tolist())
+
+    def __repr__(self):
+        return str(self.board.tolist())
     
     
 def transition(s: State, a: int) -> tuple[State, float, bool]:

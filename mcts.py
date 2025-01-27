@@ -2,43 +2,49 @@ from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass
 from math import sqrt
+import logging
 
 
-@dataclass
-class State():
-    data: list
-
-    def turn():
-        pass
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-class Environment():
-    def transition(self, s: State, a: int) -> State:
-        return State    
-
-
-class Model():
-    @abstractmethod
-    def __call__(self, s: State) -> tuple[list[float], float]:
-        pass
-
-
+# @dataclass
+# class State():
+#     data: list
+#
+#     def turn():
+#         pass
+#
+#
+# class Environment():
+#     def transition(self, s: State, a: int) -> State:
+#         return State
+#
+#
+# class Model():
+#     @abstractmethod
+#     def __call__(self, s: State) -> tuple[list[float], float]:
+#         pass
+#
+#
 class MCTNode():
     """Represents a state"""
-    def __init__(self, parent: MCTNode, s: State, p: float = 0): 
+    def __init__(self, parent: MCTNode | None, a: int | None, s: State, p: float = 0):
         self.n = 0 # visit count
         self.w = 0 # total action-value
         self.q = 0 # mean action-value
         self.p = p # prior probability of selecting the edge
 
         self.parent = parent
-        self.children = [] # states if tranistioning from self with action=index
-
+        self.a = a
         self.s = s
+        self.children = []
+
 
     def __repr__(self) -> str:
-        return f"MCTNode(n={self.n}, w={self.w}, q={self.q}, p={self.p}, parent={id(self.parent)}, is_leaf={self.is_leaf()})"
-    
+        return f"MCTNode(n={self.n}, w={self.w:.5f}, q={self.q:.5f}, p={self.p:.5f}, parent={id(self.parent)}, is_leaf={self.is_leaf()}, b={self.s.board.tolist()})"
+
     def is_leaf(self) -> bool:
         return len(self.children) == 0
     
@@ -53,13 +59,15 @@ class MCTNode():
         sum_n = sum(child.n for child in self.children) ** (1 / temperature)
         return max(self.children, key=lambda x: x.n ** (1 / temperature) / sum_n)
 
-    def get_action(self, child: MCTNode) -> int:
-        return self.children.index(child)
+    def get_action(self) -> int:
+        return self.a
 
 
 def search(root: MCTNode, f: Model, env: Environment, num_simulations: int = 800) -> tuple[int, MCTNode]:
     for t in range(num_simulations):
+        logger.debug(f"simulation: {t}")
         leaf = select(root)
+        logger.debug(f"selected leaf: {leaf}")
         expand_and_evaluate(leaf, f, env)
         backup(leaf)
     
@@ -72,11 +80,22 @@ def select(node: MCTNode) -> MCTNode:
     return node
 
 
+from tinygrad import Tensor
+
+
 def expand_and_evaluate(leaf: MCTNode, f: Model, env: Environment):
     # TODO queue nodes for evaluation with batch_size=8
-    ps, v = f(leaf.s) # TODO implement state representation as Tensor
-    leaf.children = [MCTNode(leaf, env.transition(leaf.s, a).turn(), p) for a, p in enumerate(ps)]
-    leaf.w = v
+    x = Tensor(leaf.s.board).reshape((1, 2, 3, 3))
+    ps, v = f(x) # TODO implement state representation as Tensor
+    logger.debug(f"v: {v.item()}, p: {ps.numpy().tolist()}")
+    for a, p in enumerate(ps.numpy().flatten()):
+        if not env.is_legal(a, leaf.s): continue
+        s, _, _ = env.transition(leaf.s, a)
+        s.turn()
+        child = MCTNode(leaf, a=a, s=s, p=p)
+        # logger.debug(f"adding child: {child}")
+        leaf.children.append(child)
+    leaf.w = v.item()
 
 
 def backup(leaf: MCTNode):
@@ -95,5 +114,5 @@ def backup(leaf: MCTNode):
 def play(current_node: MCTNode, temperature: float = 1) -> tuple[int, MCTNode]:
     # TODO use virtual loss to ensure each seach thread evaluates different nodes (69).
     next_node = current_node.get_best_child_to_play(temperature)
-    a = current_node.get_action(next_node)
+    a = next_node.get_action()
     return a, next_node

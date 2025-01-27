@@ -1,25 +1,31 @@
 from __future__ import annotations
 
 import mcts
+import environments.tictactoe as env
 
 import numpy as np
 from tinygrad import Tensor, nn
 from tinygrad.helpers import trange
 
-
-def self_learn(num_iterations: int, num_games: int, num_simulations: int):
-    f = ResNet()
-
-    for i in range(num_iterations):
-        games = (self_play(f, num_simulations) for j in range(num_games))
-        store(games, i)
-        data = np.ndarray(move for game in games for move in game)
-
-        f = optimize(f, data)
-        checkpoint(f, i)
+import logging
 
 
-def self_play(f: Model, num_simulations: int, v_resign: float = -1) -> np.ndarray:
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# def self_learn(num_iterations: int, num_games: int, num_simulations: int):
+#     f = ResNet()
+#
+#     for i in range(num_iterations):
+#         games = (self_play(f, num_simulations) for j in range(num_games))
+#         store(games, i)
+#         data = np.ndarray(move for game in games for move in game)
+#
+#         f = optimize(f, data)
+#         checkpoint(f, i)
+
+
+def self_play(f: ResNet, num_simulations: int, v_resign: float = -1):
     """
     For the first 30 moves of each game, the temperature is set to τ = 1; this selects moves proportionally
     to their visit count in MCTS, and ensures a diverse set of positions are encountered. For the remainder
@@ -32,15 +38,34 @@ def self_play(f: Model, num_simulations: int, v_resign: float = -1) -> np.ndarra
     resigned) below 5%. To measure false positives, we disable resignation in 10% of self-play games and play
     until termination.
     """
-    env = Environment()
-    s = State()
+    s = env.State()
+    r = None
+    node = mcts.MCTNode(None, None, s)
+    is_term = False
 
-    while not env.is_terminal(s) and v > v_resign:
-        v, ps = mcts.search(node, f, env, num_simulations)
-        record(s, ps)  # search should return these
+    states, policies, actions, rewards = [], [], [], []
+
+    while not is_term: # TODO add v > v_resign
+        logger.debug(f"Move: {len(states)}")
+        z, ps = mcts.search(node, f, env, num_simulations)
         a, node = mcts.play(node)
 
+        states.append(s), policies.append(ps), actions.append(a), rewards.append(r)
+
+        s, r, is_term = env.transition(s, a)
+        s.turn()
+
     # determine the outcome and add z to records
+    if r == 0:
+        values = [0 for _ in states]
+    else:
+        values = []
+        for i in range(len(states)):
+            values.append(r)
+            r = -r
+        values = values[::-1]
+
+    return states, policies, actions, rewards, values
 
     
 def optimize(f: ResNet, data, num_steps=1000, batch_size=2048) -> ResNet:
