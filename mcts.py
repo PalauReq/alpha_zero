@@ -1,6 +1,4 @@
 from __future__ import annotations
-from abc import abstractmethod
-from dataclasses import dataclass
 from math import sqrt
 import logging
 
@@ -9,28 +7,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-# @dataclass
-# class State():
-#     data: list
-#
-#     def turn():
-#         pass
-#
-#
-# class Environment():
-#     def transition(self, s: State, a: int) -> State:
-#         return State
-#
-#
-# class Model():
-#     @abstractmethod
-#     def __call__(self, s: State) -> tuple[list[float], float]:
-#         pass
-#
-#
 class MCTNode():
     """Represents a state"""
-    def __init__(self, parent: MCTNode | None, a: int | None, s: State, p: float = 0):
+    def __init__(self, parent: MCTNode | None, a: int | None, s, p: float = 0):
         self.n = 0 # visit count
         self.w = 0 # total action-value
         self.q = 0 # mean action-value
@@ -59,15 +38,16 @@ class MCTNode():
         sum_n = sum(child.n ** (1 / temperature) for child in self.children)
         return max(self.children, key=lambda x: x.n ** (1 / temperature) / sum_n)
 
-    def get_policy(self, temperature: float = 1) -> list[float]:
+    def get_policy(self, temperature: float, action_space: int) -> list[float]:
         sum_n = sum(child.n ** (1 / temperature) for child in self.children)
-        return [child.n ** (1 / temperature) / sum_n for child in self.children]
+        sparse_policy = {child.a: child.n ** (1 / temperature) / sum_n for child in self.children}
+        return [sparse_policy.get(a, 0) for a in range(action_space)]
 
     def get_action(self) -> int:
         return self.a
 
 
-def search(root: MCTNode, f: Model, env: Environment, num_simulations: int = 800, temperature: float = 1) -> list[float]:
+def search(root: MCTNode, f, env, num_simulations: int = 800, temperature: float = 1) -> list[float]:
     for t in range(num_simulations):
         logger.debug(f"simulation: {t}")
         leaf = select(root)
@@ -75,7 +55,7 @@ def search(root: MCTNode, f: Model, env: Environment, num_simulations: int = 800
         expand_and_evaluate(leaf, f, env)
         backup(leaf)
 
-    return root.get_policy(temperature)
+    return root.get_policy(temperature, env.action_space_size)
 
 
 def select(node: MCTNode) -> MCTNode:
@@ -87,7 +67,7 @@ def select(node: MCTNode) -> MCTNode:
 from tinygrad import Tensor
 
 
-def expand_and_evaluate(leaf: MCTNode, f: Model, env: Environment):
+def expand_and_evaluate(leaf: MCTNode, f, env):
     # TODO queue nodes for evaluation with batch_size=8
     x = Tensor(leaf.s.board).reshape((1, 2, 3, 3))
     ps, v = f(x) # TODO implement state representation as Tensor

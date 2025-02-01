@@ -87,11 +87,11 @@ class TestAlphaZero(unittest.TestCase):
 
         x, pi, z = (Tensor(a) for a in simulate_games(4))
         x_test, pi_test, z_test = (Tensor(a) for a in simulate_games(1))
-        f = ResNet((3, 3), 2, 4, 2)
+        f = ResNet((3, 3), 2, 4, 2, 9)
         _ = optimize(f, (x, pi, z, x_test, pi_test, z_test), num_steps=2, batch_size=8)
 
     def test_self_play(self):
-        f = ResNet((3, 3), 2, 4, 2)
+        f = ResNet((3, 3), 2, 4, 2, 9)
         states, policies, actions, rewards, values = self_play(f, num_simulations=10)
         for state in states:
             print(f"state: {state}")

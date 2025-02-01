@@ -6,6 +6,7 @@ import numpy as np
 
 num_players = 2
 num_rows, num_cols = 3, 3
+action_space_size = num_rows * num_cols
 
 
 @dataclass()

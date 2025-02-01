@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def self_learn(num_iterations: int, num_games: int, num_simulations: int):
-    f = ResNet((3, 3), 2, 4, 2)
+    f = ResNet((3, 3), 2, 4, 2, env.action_space_size)
 
     games = []
     for i in range(num_iterations):
@@ -131,7 +131,7 @@ def optimize(f: ResNet, data, num_steps=1000, batch_size=2048) -> ResNet:
 
 
 class ResNet:
-    def __init__(self, board_shape: tuple[int, int] = (19, 19), num_input_planes: int = 17, num_hidden_planes: int = 256, num_residual_blocks: int = 19):
+    def __init__(self, board_shape: tuple[int, int] = (19, 19), num_input_planes: int = 17, num_hidden_planes: int = 256, num_residual_blocks: int = 19, action_space_size: int = 362):
         board_size = board_shape[0] * board_shape[1]
 
         self.blocks = [
@@ -140,7 +140,7 @@ class ResNet:
             ]
         self.policy_head = [
             nn.Conv2d(num_hidden_planes, 2, (1, 1)), nn.BatchNorm(2), Tensor.relu,
-            lambda x: x.view(-1, board_size * 2), nn.Linear(board_size * 2, board_size + 1),
+            lambda x: x.view(-1, board_size * 2), nn.Linear(board_size * 2, action_space_size),
             ]
         self.value_head = [
             nn.Conv2d(num_hidden_planes, 1, (1, 1)), nn.BatchNorm(1), Tensor.relu,
