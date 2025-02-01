@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class MCTNode():
     """Represents a state"""
-    def __init__(self, parent: MCTNode | None, a: int | None, s, p: float = 0):
+    def __init__(self, parent: MCTNode | None, a: int | None, s, to_play: int = 0, p: float = 0):
         self.n = 0 # visit count
         self.w = 0 # total action-value
         self.q = 0 # mean action-value
@@ -18,6 +18,7 @@ class MCTNode():
         self.parent = parent
         self.a = a
         self.s = s
+        self.to_play = to_play
         self.children = []
 
 
@@ -53,7 +54,7 @@ def search(root: MCTNode, f, env, num_simulations: int = 800, temperature: float
         leaf = select(root)
         logger.debug(f"selected leaf: {leaf}")
         expand_and_evaluate(leaf, f, env)
-        backup(leaf)
+        backup(leaf, root.to_play)
 
     return root.get_policy(temperature, env.action_space_size)
 
@@ -76,13 +77,13 @@ def expand_and_evaluate(leaf: MCTNode, f, env):
         if not env.is_legal(a, leaf.s): continue
         s, _, _ = env.transition(leaf.s, a)
         s.turn()
-        child = MCTNode(leaf, a=a, s=s, p=p)
+        child = MCTNode(leaf, a=a, s=s, to_play=leaf.to_play + 1 % 2, p=p)
         # logger.debug(f"adding child: {child}")
         leaf.children.append(child)
     leaf.w = v.item()
 
 
-def backup(leaf: MCTNode):
+def backup(leaf: MCTNode, to_play: int):
     v = leaf.w
     leaf.n += 1
     leaf.q = leaf.w / leaf.n
@@ -90,7 +91,7 @@ def backup(leaf: MCTNode):
     
     while leaf is not None:
         leaf.n += 1
-        leaf.w += v # TODO: consider player POV! node.value_sum += value if node.to_play == to_play else -value
+        leaf.w += v if leaf.to_play == to_play else -v
         leaf.q = leaf.w / leaf.n
         leaf = leaf.parent
 
