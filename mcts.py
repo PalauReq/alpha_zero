@@ -56,22 +56,26 @@ class MCTNode():
         return c_puct * self.p * sqrt_sum_n / (1 + self.n)
     
     def get_best_child_to_play(self, temperature: float = 1) -> MCTNode:
-        sum_n = sum(child.n for child in self.children) ** (1 / temperature)
+        sum_n = sum(child.n for child in self.children) ** (1 / temperature) # Should it be the power of the sum or the sum of the power?
         return max(self.children, key=lambda x: x.n ** (1 / temperature) / sum_n)
+
+    def get_policy(self, temperature: float = 1) -> list[float]:
+        sum_n = sum(child.n for child in self.children) ** (1 / temperature) # Should it be the power of the sum or the sum of the power?
+        return [child.n ** (1 / temperature) / sum_n for child in self.children]
 
     def get_action(self) -> int:
         return self.a
 
 
-def search(root: MCTNode, f: Model, env: Environment, num_simulations: int = 800) -> tuple[int, MCTNode]:
+def search(root: MCTNode, f: Model, env: Environment, num_simulations: int = 800, temperature: float = 1) -> list[float]:
     for t in range(num_simulations):
         logger.debug(f"simulation: {t}")
         leaf = select(root)
         logger.debug(f"selected leaf: {leaf}")
         expand_and_evaluate(leaf, f, env)
         backup(leaf)
-    
-    return play(root)
+
+    return root.get_policy(temperature)
 
 
 def select(node: MCTNode) -> MCTNode:
@@ -111,7 +115,7 @@ def backup(leaf: MCTNode):
         leaf = leaf.parent
 
 
-def play(current_node: MCTNode, temperature: float = 1) -> tuple[int, MCTNode]:
+def play(current_node: MCTNode, temperature: float) -> tuple[int, MCTNode]:
     # TODO use virtual loss to ensure each seach thread evaluates different nodes (69).
     next_node = current_node.get_best_child_to_play(temperature)
     a = next_node.get_action()

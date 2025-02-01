@@ -100,5 +100,8 @@ class TestAlphaZero(unittest.TestCase):
         print(f"rewards: {rewards}")
         print(f"values: {values}")
 
+    def test_self_learn(self):
+       self_learn(num_iterations=10, num_games=5, num_simulations=20)
+
 if __name__ == "__main__":
     unittest.main()

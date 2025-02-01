@@ -3,7 +3,6 @@ from __future__ import annotations
 import mcts
 import environments.tictactoe as env
 
-import numpy as np
 from tinygrad import Tensor, nn
 from tinygrad.helpers import trange
 
@@ -13,17 +12,45 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# def self_learn(num_iterations: int, num_games: int, num_simulations: int):
-#     f = ResNet()
-#
-#     for i in range(num_iterations):
-#         games = (self_play(f, num_simulations) for j in range(num_games))
-#         store(games, i)
-#         data = np.ndarray(move for game in games for move in game)
-#
-#         f = optimize(f, data)
-#         checkpoint(f, i)
+def self_learn(num_iterations: int, num_games: int, num_simulations: int):
+    f = ResNet((3, 3), 2, 4, 2)
 
+    games = []
+    for i in range(num_iterations):
+        wins, draws, losses = 0, 0, 0
+        logger.info(f"Iteration: {i}")
+        for j in range(num_games):
+            logger.info(f"Game: {j}")
+            states, policies, actions, rewards, values = self_play(f, num_simulations)
+
+            if j == 0:
+                for state in states:
+                    print(f"state: {state}")
+                for policies in policies: # TODO: These are currently MCTNode objects
+                    print(f"policy: {policies}")
+                print(f"actions: {actions}")
+                print(f"rewards: {rewards}")
+                print(f"values: {values}")
+
+            match values[0]:
+                case 1: wins += 1
+                case 0: draws += 1
+                case -1: losses += 1
+
+            games.append([states, policies, actions, rewards, values])
+
+        logger.info(f"Player 1: {wins} wins, {draws} draws and {losses} losses")
+
+        # store(games, i)
+        x = Tensor([state.board for i, game in enumerate(games) for state in game[0] if i%7 != 0])
+        pi = Tensor([action for i, game in enumerate(games) for action in game[2] if i%7 != 0])
+        v = Tensor([value for i, game in enumerate(games) for value in game[4] if i%7 != 0])
+        x_test = Tensor([state.board for i, game in enumerate(games) for state in game[0] if i%7 == 0])
+        pi_test = Tensor([action for i, game in enumerate(games) for action in game[2] if i%7 == 0])
+        v_test = Tensor([value for i, game in enumerate(games) for value in game[4] if i%7 == 0])
+
+        f = optimize(f, (x, pi, v, x_test, pi_test, v_test))
+        # checkpoint(f, i)
 
 def self_play(f: ResNet, num_simulations: int, v_resign: float = -1):
     """
@@ -64,6 +91,11 @@ def self_play(f: ResNet, num_simulations: int, v_resign: float = -1):
             values.append(r)
             r = -r
         values = values[::-1]
+
+    if actions[0] in [0, 2, 3, 5, 6, 8]:
+        logger.info(f"Player 1 did an optimal opening")
+        if actions[1] == 4:
+            logger.info(f"Player 2 did an optimal move")
 
     return states, policies, actions, rewards, values
 
