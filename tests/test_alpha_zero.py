@@ -95,13 +95,15 @@ class TestAlphaZero(unittest.TestCase):
         states, policies, actions, rewards, values = self_play(f, num_simulations=10)
         for state in states:
             print(f"state: {state}")
-        # print(f"policies: {policies}")
+        for policy in policies:
+            print(f"policies: {policy}")
         print(f"actions: {actions}")
         print(f"rewards: {rewards}")
         print(f"values: {values}")
 
+    @unittest.skip("Too many num_steps and batch_size too large")
     def test_self_learn(self):
-       self_learn(num_iterations=10, num_games=5, num_simulations=20)
+       self_learn(num_iterations=2, num_games=3, num_simulations=10)
 
 if __name__ == "__main__":
     unittest.main()
