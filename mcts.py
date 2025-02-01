@@ -103,7 +103,7 @@ def expand_and_evaluate(leaf: MCTNode, f: Model, env: Environment):
 
 
 def backup(leaf: MCTNode):
-    v = leaf. w
+    v = leaf.w
     leaf.n += 1
     leaf.q = leaf.w / leaf.n
     leaf = leaf.parent

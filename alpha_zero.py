@@ -74,10 +74,10 @@ def self_play(f: ResNet, num_simulations: int, v_resign: float = -1):
 
     while not is_term: # TODO add v > v_resign
         logger.debug(f"Move: {len(states)}")
-        z, ps = mcts.search(node, f, env, num_simulations)
-        a, node = mcts.play(node)
+        pi = mcts.search(node, f, env, num_simulations, temperature=10)
+        a, node = mcts.play(node, temperature=10)
 
-        states.append(s), policies.append(ps), actions.append(a), rewards.append(r)
+        states.append(s), policies.append(pi), actions.append(a), rewards.append(r)
 
         s, r, is_term = env.transition(s, a)
         s.turn()
@@ -106,24 +106,24 @@ def optimize(f: ResNet, data, num_steps=1000, batch_size=2048) -> ResNet:
     is sampled uniformly at random from all positions from the most recent 500,000 games of self-play.
     It produces a new checkpoint every 1,000 training steps.
     """
-    x, pi, v, x_test, pi_test, v_test  = data
+    x, pi, z, x_test, pi_test, z_test  = data
     samples = Tensor.randint((num_steps, batch_size), high=x.shape[0])
-    x, pi, v = x[samples], pi[samples], v[samples]
+    x, pi, z = x[samples], pi[samples], z[samples]
     opt = nn.optim.Adam(nn.state.get_parameters(f))
 
     with Tensor.train():
         losses = []
         for i in range(samples.shape[0]):
             opt.zero_grad()
-            p, z = f(x[i])
-            # sparse_categorical_crossentropy expects target of shape (batch_size,) and returns (batch_size,)
-            loss = (p.sparse_categorical_crossentropy(pi[i], reduction="none") + (z.squeeze() - v[i]) ** 2).mean(axis=0)
+            ps, v = f(x[i])
+            # cross_entropy expects target of shape (batch_size,) and returns (batch_size,)
+            loss = (ps.cross_entropy(pi[i], reduction="none") + (v.squeeze() - z[i]) ** 2).mean(axis=0)
             losses.append(loss.backward())
             opt.schedule_step()
 
     with Tensor.test():
-        p, z = f(x_test)
-        test_loss = (p.sparse_categorical_crossentropy(pi_test, reduction="none") + (z.squeeze() - v_test) ** 2).mean(axis=0)
+        ps, v = f(x_test)
+        test_loss = (ps.cross_entropy(pi_test, reduction="none") + (v.squeeze() - z_test) ** 2).mean(axis=0)
 
     for i in (t:=trange(len(losses))): t.set_description(f"loss: {losses[i].item():6.2f}")
     print(f"test_loss: {test_loss.item():5.2f}")

@@ -3,7 +3,7 @@ import unittest
 from mcts import *
 
 
-class TestMTCS(unittest.TestCase):
+class TestMCTS(unittest.TestCase):
     def test_search(self):
         class ConstantModel(Model):
             def __call__(self, s: State) -> tuple[list[float], float]:
