@@ -1,6 +1,7 @@
 from __future__ import annotations
 from math import sqrt
 import logging
+import random
 
 
 logging.basicConfig(level=logging.INFO)
@@ -37,7 +38,8 @@ class MCTNode():
     
     def get_best_child_to_play(self, temperature: float = 1) -> MCTNode:
         sum_n = sum(child.n ** (1 / temperature) for child in self.children)
-        return max(self.children, key=lambda x: x.n ** (1 / temperature) / sum_n)
+        scores = [child.n ** (1 / temperature) / sum_n for child in self.children]
+        return random.choices(self.children, weights=scores)[0]
 
     def get_policy(self, temperature: float, action_space: int) -> list[float]:
         sum_n = sum(child.n ** (1 / temperature) for child in self.children)
