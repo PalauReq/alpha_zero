@@ -56,7 +56,7 @@ def search(root: MCTNode, f, env, num_simulations: int = 800, temperature: float
         leaf = select(root)
         logger.debug(f"selected leaf: {leaf}")
         expand_and_evaluate(leaf, f, env)
-        backup(leaf, root.to_play)
+        backup(leaf)
 
     return root.get_policy(temperature, env.action_space_size)
 
@@ -79,13 +79,14 @@ def expand_and_evaluate(leaf: MCTNode, f, env):
         if not env.is_legal(a, leaf.s): continue
         s, _, _ = env.transition(leaf.s, a)
         s.turn()
-        child = MCTNode(leaf, a=a, s=s, to_play=leaf.to_play + 1 % 2, p=p)
+        child = MCTNode(leaf, a=a, s=s, to_play=(leaf.to_play + 1) % 2, p=p)
         # logger.debug(f"adding child: {child}")
         leaf.children.append(child)
     leaf.w = v.item()
 
 
-def backup(leaf: MCTNode, to_play: int):
+def backup(leaf: MCTNode):
+    to_play = leaf.to_play
     v = leaf.w
     leaf.n += 1
     leaf.q = leaf.w / leaf.n
@@ -103,3 +104,8 @@ def play(current_node: MCTNode, temperature: float) -> tuple[int, MCTNode]:
     next_node = current_node.get_best_child_to_play(temperature)
     a = next_node.get_action()
     return a, next_node
+
+def print_tree(node: MCTNode, indent: int = 0):
+    print(f"{'  ' * indent}{indent} {node}")
+    for child in node.children:
+        if child.n > 0: print_tree(child, indent + 1)
