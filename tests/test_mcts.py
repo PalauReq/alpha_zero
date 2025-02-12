@@ -8,12 +8,11 @@ from tinygrad import Tensor
 
 
 class TestMCTS(unittest.TestCase):
-    class EnvironmentModel():
+    class MockModel():
         def __call__(self, x: Tensor) -> tuple[Tensor, Tensor]:
-            r = env.compute_reward(env.State(x.numpy()[0]))
-            return Tensor([1/9] * 9), Tensor(r)
+            return Tensor([1/9] * 9), Tensor(0)
 
-    model = EnvironmentModel()
+    model = MockModel()
 
     def test_search_winner(self):
         board = np.array([[[0, 0, 0], [1, 1, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [1, 1, 0]]])

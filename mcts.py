@@ -9,6 +9,12 @@ from tinygrad import Tensor  # TODO remove MCTS dependency on tinygrad
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+"""
+AlphaZero is provided with perfect knowledge of the game rules. These are used during
+MCTS, to simulate the positions resulting from a sequence of moves, to determine game
+termination, and to score any simulations that reach a terminal state.
+"""
+
 
 class MCTNode():
     """Represents a state"""
@@ -26,7 +32,7 @@ class MCTNode():
 
 
     def __repr__(self) -> str:
-        return f"MCTNode(n={self.n}, w={self.w:.5f}, q={self.q:.5f}, p={self.p:.5f}, parent={id(self.parent)}, is_leaf={self.is_leaf()}, b={self.s.board.tolist()})"
+        return f"MCTNode(n={self.n}, w={self.w:.5f}, q={self.q:.5f}, p={self.p:.5f}, s={self.s})"
 
     def is_leaf(self) -> bool:
         return len(self.children) == 0
@@ -53,18 +59,16 @@ class MCTNode():
 
 
 def search(root: MCTNode, f, env, num_simulations: int = 800, temperature: float = 1) -> list[float]:
-    for t in range(num_simulations):
-        logger.debug(f"simulation: {t}")
+    for _ in range(num_simulations):
         leaf = select(root)
-        logger.debug(f"selected leaf: {leaf}")
         expand_and_evaluate(leaf, f, env)
         backup(leaf)
 
     return root.get_policy(temperature, env.action_space_size)
 
 
-def select(node: MCTNode, env) -> MCTNode:
-    while not node.is_leaf(): # and not env.is_terminal(node.s): # TODO avoid MCTS exploring post terminal states!
+def select(node: MCTNode) -> MCTNode:
+    while not node.is_leaf():
         node = node.get_best_child_to_explore()
     return node
 
@@ -74,14 +78,17 @@ def expand_and_evaluate(leaf: MCTNode, f, env):
     x = Tensor(leaf.s.board).reshape((1, 2, 3, 3))
     ps, v = f(x) # TODO model should take boards as numpy arrays
     logger.debug(f"s: {leaf.s.board.tolist()}, v: {v.item()}, p: {ps.numpy().tolist()}")
-    for a, p in enumerate(ps.numpy().flatten()): # TODO avoid MCTS exploring post terminal states!
-        if not env.is_legal(a, leaf.s): continue
-        s, _, _ = env.transition(leaf.s, a)
-        s.turn()
-        child = MCTNode(leaf, a=a, s=s, to_play=(leaf.to_play + 1) % 2, p=p)
-        logger.debug(f"adding child: {child}")
-        leaf.children.append(child)
-    leaf.w = v.item()
+
+    if env.is_terminal(leaf.s):
+        leaf.w = env.compute_reward(leaf.s)
+    else:
+        for a, p in enumerate(ps.numpy().flatten()):
+            if not env.is_legal(a, leaf.s): continue
+            s, _, _ = env.transition(leaf.s, a)
+            s.turn()
+            child = MCTNode(leaf, a=a, s=s, to_play=(leaf.to_play + 1) % 2, p=p)
+            leaf.children.append(child)
+        leaf.w = v.item()
 
 
 def backup(leaf: MCTNode):
@@ -103,6 +110,7 @@ def play(current_node: MCTNode, temperature: float) -> tuple[int, MCTNode]:
     next_node = current_node.get_best_child_to_play(temperature)
     a = next_node.get_action()
     return a, next_node
+
 
 def print_tree(node: MCTNode, indent: int = 0):
     print(f"{'  ' * indent}{indent} {node}")
