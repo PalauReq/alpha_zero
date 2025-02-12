@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def self_learn(num_iterations: int, num_games: int, num_simulations: int):
-    f = ResNet((3, 3), 2, 4, 2, env.action_space_size)
+    f = ResNet((3, 3), 2, 9, 2, env.action_space_size)
 
     games = []
     for i in range(num_iterations):
@@ -21,16 +21,7 @@ def self_learn(num_iterations: int, num_games: int, num_simulations: int):
         logger.info(f"Iteration: {i}")
         for j in range(num_games):
             logger.info(f"Game: {j}")
-            states, policies, actions, rewards, values = self_play(f, num_simulations)
-
-            if j == 0:
-                for state in states:
-                    print(f"state: {state}")
-                for policies in policies: # TODO: These are currently MCTNode objects
-                    print(f"policy: {policies}")
-                print(f"actions: {actions}")
-                print(f"rewards: {rewards}")
-                print(f"values: {values}")
+            states, policies, actions, rewards, values = self_play(m, num_simulations)
 
             match values[0]:
                 case 1: wins += 1
@@ -43,14 +34,14 @@ def self_learn(num_iterations: int, num_games: int, num_simulations: int):
 
         # store(games, i)
         x = Tensor([state.board for i, game in enumerate(games) for state in game[0] if i%7 != 0])
-        pi = Tensor([action for i, game in enumerate(games) for action in game[2] if i%7 != 0])
+        pi = Tensor([policy for i, game in enumerate(games) for policy in game[1] if i%7 != 0])
         v = Tensor([value for i, game in enumerate(games) for value in game[4] if i%7 != 0])
         x_test = Tensor([state.board for i, game in enumerate(games) for state in game[0] if i%7 == 0])
-        pi_test = Tensor([action for i, game in enumerate(games) for action in game[2] if i%7 == 0])
+        pi_test = Tensor([policy for i, game in enumerate(games) for policy in game[1] if i%7 == 0])
         v_test = Tensor([value for i, game in enumerate(games) for value in game[4] if i%7 == 0])
 
         f = optimize(f, (x, pi, v, x_test, pi_test, v_test))
-        # checkpoint(f, i)
+        # nn.state.safe_save(nn.state.get_state_dict(f), f"202502021050_{i:02}.safetensor")
 
 def self_play(f: ResNet, num_simulations: int, v_resign: float = -1):
     """
@@ -74,8 +65,9 @@ def self_play(f: ResNet, num_simulations: int, v_resign: float = -1):
 
     while not is_term: # TODO add v > v_resign
         logger.debug(f"Move: {len(states)}")
-        pi = mcts.search(node, f, env, num_simulations, temperature=10)
-        a, node = mcts.play(node, temperature=10)
+        pi = mcts.search(node, m, env, num_simulations, temperature=2)
+        a, node = mcts.play(node, temperature=2)
+        logger.info(f"pi: {pi}, a: {a}")
 
         states.append(s), policies.append(pi), actions.append(a), rewards.append(r)
 
@@ -92,10 +84,12 @@ def self_play(f: ResNet, num_simulations: int, v_resign: float = -1):
             r = -r
         values = values[::-1]
 
-    if actions[0] in [0, 2, 3, 5, 6, 8]:
+    if actions[0] in [0, 2, 6, 8]:
         logger.info(f"Player 1 did an optimal opening")
         if actions[1] == 4:
             logger.info(f"Player 2 did an optimal move")
+
+    logger.info(f"actions: {actions}")
 
     return states, policies, actions, rewards, values
 
@@ -170,3 +164,7 @@ class ResidualBlock:
     
     def __call__(self, x: Tensor) -> Tensor:
         return (x.sequential(self.layers) + x).relu()
+
+
+if __name__ == "__main__":
+    self_learn(20, 4, 100)
