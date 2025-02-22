@@ -3,11 +3,12 @@ from math import sqrt
 import logging
 import random
 
-from tinygrad import Tensor  # TODO remove MCTS dependency on tinygrad
+from model import Model
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 """
 AlphaZero is provided with perfect knowledge of the game rules. These are used during
@@ -58,10 +59,10 @@ class MCTNode():
         return self.a
 
 
-def search(root: MCTNode, f, env, num_simulations: int = 800, temperature: float = 1) -> list[float]:
+def search(root: MCTNode, m: Model, env, num_simulations: int = 800, temperature: float = 1) -> list[float]:
     for _ in range(num_simulations):
         leaf = select(root)
-        expand_and_evaluate(leaf, f, env)
+        expand_and_evaluate(leaf, m, env)
         backup(leaf)
 
     return root.get_policy(temperature, env.action_space_size)
@@ -73,22 +74,20 @@ def select(node: MCTNode) -> MCTNode:
     return node
 
 
-def expand_and_evaluate(leaf: MCTNode, f, env):
-    # TODO queue nodes for evaluation with batch_size=8
-    x = Tensor(leaf.s.board).reshape((1, 2, 3, 3))
-    ps, v = f(x) # TODO model should take boards as numpy arrays
-    logger.debug(f"s: {leaf.s.board.tolist()}, v: {v.item()}, p: {ps.numpy().tolist()}")
+def expand_and_evaluate(leaf: MCTNode, m: Model, env):
+    ps, v = m(leaf.s.board)
+    logger.debug(f"s: {leaf.s}, v: {v}, p: {ps.tolist()}")
 
     if env.is_terminal(leaf.s):
         leaf.w = env.compute_reward(leaf.s)
     else:
-        for a, p in enumerate(ps.numpy().flatten()):
+        for a, p in enumerate(ps):
             if not env.is_legal(a, leaf.s): continue
             s, _, _ = env.transition(leaf.s, a)
             s.turn()
             child = MCTNode(leaf, a=a, s=s, to_play=(leaf.to_play + 1) % 2, p=p)
             leaf.children.append(child)
-        leaf.w = v.item()
+        leaf.w = v
 
 
 def backup(leaf: MCTNode):

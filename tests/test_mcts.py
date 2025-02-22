@@ -2,17 +2,17 @@ import unittest
 
 from mcts import *
 import environments.tictactoe as env
+from alpha_zero import Model, ResNet
 
 import numpy as np
-from tinygrad import Tensor
 
 
 class TestMCTS(unittest.TestCase):
-    class MockModel():
-        def __call__(self, x: Tensor) -> tuple[Tensor, Tensor]:
-            return Tensor([1/9] * 9), Tensor(0)
+    class MockModel(Model):
+        def __call__(self, x: np.ndarray) -> tuple[np.ndarray, float]:
+            return np.array([1/9] * 9), 0
 
-    model = MockModel()
+    model = MockModel(ResNet((3, 3), 2, 1, 1, 9))
 
     def test_search_winner(self):
         board = np.array([[[0, 0, 0], [1, 1, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [1, 1, 0]]])
