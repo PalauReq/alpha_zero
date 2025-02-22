@@ -21,7 +21,7 @@ class TestAlphaZero(unittest.TestCase):
     def test_win_in_one(self):
         f = self.MockModel()
         board = np.array([[[0, 0, 0], [0, 0, 0], [0, 1, 1]], [[1, 0, 0], [0, 1, 0], [0, 0, 0]]])
-        node = mcts.MCTNode(parent=None, a=None, s=env.State(board))
+        node = mcts.Node(parent=None, a=None, s=env.State(board))
         pi = mcts.search(node, f, env, num_simulations=1000)
         print_tree(node)
         print(f"pi: {pi}")

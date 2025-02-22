@@ -17,9 +17,9 @@ termination, and to score any simulations that reach a terminal state.
 """
 
 
-class MCTNode():
+class Node():
     """Represents a state"""
-    def __init__(self, parent: MCTNode | None, a: int | None, s, to_play: int = 0, p: float = 0):
+    def __init__(self, parent: Node | None, a: int | None, s, to_play: int = 0, p: float = 0):
         self.n = 0 # visit count
         self.w = 0 # total action-value
         self.q = 0 # mean action-value
@@ -41,11 +41,11 @@ class MCTNode():
     def get_exploring_score(self, sqrt_sum_n: int, c_puct: float = 1) -> float:
         return - self.q + c_puct * self.p * sqrt_sum_n / (1 + self.n)
     
-    def get_best_child_to_explore(self, c_puct: float = 1) -> MCTNode:
+    def get_best_child_to_explore(self, c_puct: float = 1) -> Node:
         sqrt_sum_n = sqrt(sum(child.n for child in self.children))
         return max(self.children, key=lambda x: x.get_exploring_score(sqrt_sum_n, c_puct))
     
-    def get_best_child_to_play(self, temperature: float = 1) -> MCTNode:
+    def get_best_child_to_play(self, temperature: float = 1) -> Node:
         sum_n = sum(child.n ** (1 / temperature) for child in self.children)
         scores = [child.n ** (1 / temperature) / sum_n for child in self.children]
         return random.choices(self.children, weights=scores)[0]
@@ -59,7 +59,7 @@ class MCTNode():
         return self.a
 
 
-def search(root: MCTNode, m: Model, env, num_simulations: int = 800, temperature: float = 1) -> list[float]:
+def search(root: Node, m: Model, env, num_simulations: int = 800, temperature: float = 1) -> list[float]:
     for _ in range(num_simulations):
         leaf = select(root)
         expand_and_evaluate(leaf, m, env)
@@ -68,13 +68,13 @@ def search(root: MCTNode, m: Model, env, num_simulations: int = 800, temperature
     return root.get_policy(temperature, env.action_space_size)
 
 
-def select(node: MCTNode) -> MCTNode:
+def select(node: Node) -> Node:
     while not node.is_leaf():
         node = node.get_best_child_to_explore()
     return node
 
 
-def expand_and_evaluate(leaf: MCTNode, m: Model, env):
+def expand_and_evaluate(leaf: Node, m: Model, env):
     ps, v = m(leaf.s.board)
     logger.debug(f"s: {leaf.s}, v: {v}, p: {ps.tolist()}")
 
@@ -85,12 +85,12 @@ def expand_and_evaluate(leaf: MCTNode, m: Model, env):
             if not env.is_legal(a, leaf.s): continue
             s, _, _ = env.transition(leaf.s, a)
             s.turn()
-            child = MCTNode(leaf, a=a, s=s, to_play=(leaf.to_play + 1) % 2, p=p)
+            child = Node(leaf, a=a, s=s, to_play=(leaf.to_play + 1) % 2, p=p)
             leaf.children.append(child)
         leaf.w = v
 
 
-def backup(leaf: MCTNode):
+def backup(leaf: Node):
     to_play = leaf.to_play
     v = leaf.w
     leaf.n += 1
@@ -104,14 +104,14 @@ def backup(leaf: MCTNode):
         leaf = leaf.parent
 
 
-def play(current_node: MCTNode, temperature: float) -> tuple[int, MCTNode]:
+def play(current_node: Node, temperature: float) -> tuple[int, Node]:
     # TODO use virtual loss to ensure each search thread evaluates different nodes.
     next_node = current_node.get_best_child_to_play(temperature)
     a = next_node.get_action()
     return a, next_node
 
 
-def print_tree(node: MCTNode, indent: int = 0):
+def print_tree(node: Node, indent: int = 0):
     print(f"{'  ' * indent}{indent} {node}")
     for child in node.children:
         if child.n > 0: print_tree(child, indent + 1)

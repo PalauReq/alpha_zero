@@ -57,7 +57,7 @@ def self_play(m: Model, num_simulations: int, v_resign: float = -1):
     """
     s = env.State()
     r = None
-    node = mcts.MCTNode(None, None, s)
+    node = mcts.Node(None, None, s)
     is_term = False
 
     states, policies, actions, rewards = [], [], [], []
