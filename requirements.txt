@@ -1,0 +1,2 @@
+numpy==2.2.6
+tinygrad==0.10.3
