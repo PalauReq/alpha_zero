@@ -12,7 +12,7 @@ class Model:
     def __call__(self, x: np.ndarray) -> tuple[np.ndarray, float]:
         # TODO queue nodes for evaluation with batch_size=8
         ps, v = self.f(Tensor(x).unsqueeze(0))  # x has not a batch dimension
-        return ps.numpy().flatten(), v.item()
+        return ps.softmax().numpy().flatten(), v.item()
 
 
 class ResNet:
