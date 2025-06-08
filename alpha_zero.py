@@ -5,12 +5,18 @@ from model import Model, ResNet, optimize
 import environments.tictactoe as env
 
 import logging
-
+import pickle
+import json
+from datetime import datetime
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def self_learn(num_iterations: int, num_games: int, num_simulations: int):
+    start = datetime.now()
+    os.mkdir(f"data/{start.strftime('%Y%m%d_%H%M%S')}")
+
     f = ResNet((3, 3), 2, 9, 2, env.action_space_size)
 
     games = []
@@ -31,6 +37,9 @@ def self_learn(num_iterations: int, num_games: int, num_simulations: int):
 
         logger.info(f"Player 1: {wins} wins, {draws} draws and {losses} losses")
 
+        with open(f"data/{start.strftime("%Y%m%d_%H%M%S")}/games_{i:03}.pickle", "wb") as f_out:
+            pickle.dump(games, f_out)
+
         # store(games, i)
         x = [state.board for i, game in enumerate(games) for state in game[0] if i%7 != 0]
         pi = [policy for i, game in enumerate(games) for policy in game[1] if i%7 != 0]
@@ -39,7 +48,11 @@ def self_learn(num_iterations: int, num_games: int, num_simulations: int):
         pi_test = [policy for i, game in enumerate(games) for policy in game[1] if i%7 == 0]
         v_test = [value for i, game in enumerate(games) for value in game[4] if i%7 == 0]
 
-        f = optimize(f, (x, pi, v, x_test, pi_test, v_test))
+        f, losses, test_loss = optimize(f, (x, pi, v, x_test, pi_test, v_test), num_steps=32, batch_size=32)
+
+        with open(f"data/{start.strftime('%Y%m%d_%H%M%S')}/loss_{i:03}.json", "w") as f_out:
+            json.dump({"loss": [l.item() for l in losses], "test_loss": test_loss.item()}, f_out)
+
         # nn.state.safe_save(nn.state.get_state_dict(f), f"202502021050_{i:02}.safetensor")
 
 def self_play(m: Model, num_simulations: int, v_resign: float = -1):

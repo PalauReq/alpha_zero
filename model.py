@@ -86,4 +86,4 @@ def optimize(f: ResNet, data: tuple, num_steps=1000, batch_size=2048) -> ResNet:
 
     for i in (t:=trange(len(losses))): t.set_description(f"loss: {losses[i].item():6.2f}")
     print(f"test_loss: {test_loss.item():5.2f}")
-    return f
+    return f, losses, test_loss
