@@ -68,7 +68,7 @@ def optimize(f: ResNet, data: tuple, num_steps=1000, batch_size=2048) -> ResNet:
     x, pi, z, x_test, pi_test, z_test  = (Tensor(d) for d in data)
     samples = Tensor.randint((num_steps, batch_size), high=x.shape[0])
     x, pi, z = x[samples], pi[samples], z[samples]
-    opt = nn.optim.Adam(nn.state.get_parameters(f))
+    opt = nn.optim.Adam(nn.state.get_parameters(f), lr=0.003)
 
     with Tensor.train():
         losses = []

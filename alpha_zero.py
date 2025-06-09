@@ -77,8 +77,8 @@ def self_play(m: Model, num_simulations: int, v_resign: float = -1):
 
     while not is_term: # TODO add v > v_resign
         logger.debug(f"Move: {len(states)}")
-        pi = mcts.search(node, m, env, num_simulations, temperature=2)
-        a, node = mcts.play(node, temperature=2)
+        pi = mcts.search(node, m, env, num_simulations, temperature=1)
+        a, node = mcts.play(node, temperature=1)
         logger.info(f"pi: {pi}, a: {a}")
 
         states.append(s), policies.append(pi), actions.append(a), rewards.append(r)
@@ -107,4 +107,4 @@ def self_play(m: Model, num_simulations: int, v_resign: float = -1):
 
     
 if __name__ == "__main__":
-    self_learn(20, 4, 100)
+    self_learn(num_iterations=100, num_games=8, num_simulations=100)
