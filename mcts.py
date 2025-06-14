@@ -75,19 +75,19 @@ def select(node: Node) -> Node:
 
 
 def expand_and_evaluate(leaf: Node, m: Model, env):
-    ps, v = m(leaf.s.board)
-    logger.debug(f"s: {leaf.s}, v: {v}, p: {ps.tolist()}")
-
     if env.is_terminal(leaf.s):
-        leaf.w = env.compute_reward(leaf.s)
+        leaf.w += env.compute_reward(leaf.s)
     else:
+        ps, v = m(leaf.s.board)
+        logger.debug(f"s: {leaf.s}, v: {v}, p: {ps.tolist()}")
+        leaf.w = v
+
         for a, p in enumerate(ps):
             if not env.is_legal(a, leaf.s): continue
             s, _, _ = env.transition(leaf.s, a)
             s.turn()
             child = Node(leaf, a=a, s=s, to_play=(leaf.to_play + 1) % 2, p=p)
             leaf.children.append(child)
-        leaf.w = v
 
 
 def backup(leaf: Node):

@@ -32,6 +32,12 @@ class TestMCTS(unittest.TestCase):
         policy = search(node, self.model, env, 100)
         self.assertEqual(policy.index(max(policy)), 6)
 
+    def test_search_winner_2(self):
+        board = np.array([[[0, 0, 0], [0, 1, 1], [0, 0, 1]], [[1, 0, 0], [1, 0, 0], [0, 1, 0]]])
+        node = Node(parent=None, a=None, s=env.State(board))
+        policy = search(node, self.model, env, 100)
+        self.assertEqual(policy.index(max(policy)), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
